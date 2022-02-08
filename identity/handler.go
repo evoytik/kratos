@@ -3,6 +3,7 @@ package identity
 import (
 	"context"
 	"encoding/json"
+	"github.com/ory/x/decoderx"
 	"net/http"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 
 const RouteCollection = "/identities"
 const RouteItem = RouteCollection + "/:id"
+const RouteFind = "/find.id"
 
 type (
 	handlerDependencies interface {
@@ -57,6 +59,7 @@ func (h *Handler) RegisterPublicRoutes(public *x.RouterPublic) {
 	public.DELETE(RouteItem, x.RedirectToAdminRoute(h.r))
 	public.POST(RouteCollection, x.RedirectToAdminRoute(h.r))
 	public.PUT(RouteItem, x.RedirectToAdminRoute(h.r))
+	public.POST(RouteFind, x.RedirectToAdminRoute(h.r))
 }
 
 func (h *Handler) RegisterAdminRoutes(admin *x.RouterAdmin) {
@@ -66,6 +69,7 @@ func (h *Handler) RegisterAdminRoutes(admin *x.RouterAdmin) {
 
 	admin.POST(RouteCollection, h.create)
 	admin.PUT(RouteItem, h.update)
+	admin.POST(RouteFind, h.find)
 }
 
 // A list of identities.
@@ -195,6 +199,24 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	}
 
 	h.r.Writer().Write(w, r, WithCredentialsMetadataInJSON(*i))
+}
+
+func (h *Handler) find(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	var p struct {
+		Type  CredentialsType `json:"credential_type"`
+		Value string          `json:"value"`
+	}
+	if err := decoderx.NewHTTP().Decode(r, &p, decoderx.HTTPJSONDecoder()); err != nil {
+		h.r.Writer().WriteError(w, r, err)
+		return
+	}
+
+	i, _, err := h.r.PrivilegedIdentityPool().FindByCredentialsIdentifier(r.Context(), p.Type, p.Value)
+	if err != nil {
+		h.r.Writer().WriteError(w, r, err)
+		return
+	}
+	h.r.Writer().Write(w, r, i)
 }
 
 // swagger:parameters adminCreateIdentity
