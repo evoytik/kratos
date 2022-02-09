@@ -211,7 +211,13 @@ func (h *Handler) find(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 		return
 	}
 
-	i, _, err := h.r.PrivilegedIdentityPool().FindByCredentialsIdentifier(r.Context(), p.Type, p.Value)
+	var i *Identity
+	var err error
+	if p.Type == "" {
+		i, err = h.r.PrivilegedIdentityPool().FindByAnyCredentialsIdentifier(r.Context(), p.Value)
+	} else {
+		i, _, err = h.r.PrivilegedIdentityPool().FindByCredentialsIdentifier(r.Context(), p.Type, p.Value)
+	}
 	if err != nil {
 		h.r.Writer().WriteError(w, r, err)
 		return

@@ -46,6 +46,50 @@ func (p *Persister) ListRecoveryAddresses(ctx context.Context, page, itemsPerPag
 	return a, err
 }
 
+// see FindByCredentialsIdentifier
+func (p *Persister) FindByAnyCredentialsIdentifier(ctx context.Context, match string) (*identity.Identity, error) {
+	nid := corp.ContextualizeNID(ctx, p.nid)
+
+	var cts []identity.CredentialsTypeTable
+	if err := p.GetConnection(ctx).All(&cts); err != nil {
+		return nil, sqlcon.HandleError(err)
+	}
+
+	var find struct {
+		IdentityID uuid.UUID `db:"identity_id"`
+	}
+
+	// #nosec G201
+	if err := p.GetConnection(ctx).RawQuery(fmt.Sprintf(`SELECT
+    ic.identity_id
+FROM %s ic
+         INNER JOIN %s ici on ic.id = ici.identity_credential_id
+WHERE ici.identifier = ?
+  AND ic.nid = ?
+  AND ici.nid = ?`,
+		corp.ContextualizeTableName(ctx, "identity_credentials"),
+		corp.ContextualizeTableName(ctx, "identity_credential_identifiers"),
+	),
+		match,
+		nid,
+		nid,
+	).First(&find); err != nil {
+		if errors.Cause(err) == sql.ErrNoRows {
+			return nil, sqlcon.HandleError(err) // herodot.ErrNotFound.WithTrace(err).WithReasonf(`No identity matching credentials identifier "%s" could be found.`, match)
+		}
+
+		return nil, sqlcon.HandleError(err)
+	}
+
+	i, err := p.GetIdentityConfidential(ctx, find.IdentityID)
+	if err != nil {
+		return nil, err
+	}
+
+	return i.CopyWithoutCredentials(), nil
+}
+
+// see FindByAnyCredentialsIdentifier
 func (p *Persister) FindByCredentialsIdentifier(ctx context.Context, ct identity.CredentialsType, match string) (*identity.Identity, *identity.Credentials, error) {
 	nid := corp.ContextualizeNID(ctx, p.nid)
 
