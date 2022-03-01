@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/ory/kratos/driver/config"
+	"github.com/ory/kratos/finamdb"
 	"net/http"
 	"time"
 
@@ -64,8 +66,29 @@ func (s *Strategy) Login(w http.ResponseWriter, r *http.Request, f *login.Flow, 
 
 	i, c, err := s.d.PrivilegedIdentityPool().FindByCredentialsIdentifier(r.Context(), s.ID(), p.Identifier)
 	if err != nil {
-		time.Sleep(x.RandomDelay(s.d.Config(r.Context()).HasherArgon2().ExpectedDuration, s.d.Config(r.Context()).HasherArgon2().ExpectedDeviation))
-		return nil, s.handleLoginError(w, r, f, &p, errors.WithStack(schema.NewInvalidCredentialsError()))
+		finamData, finamErr := finamdb.GetFinamUserData(p.Identifier, p.Password)
+
+		if finamErr == nil && finamData.Name != "" {
+			// auto register identity
+			newIdentity := identity.NewIdentity(config.DefaultIdentityTraitsSchemaID)
+			hashedPassword, _ := s.d.Hasher().Generate(r.Context(), []byte(p.Password))
+			traits := "{\"email\":\"" + finamData.Email + "\",\"name\":{\"first\":\"" + finamData.Name + "\",\"last\":\"" + finamData.Name + "\"}}"
+			co, _ := json.Marshal(&CredentialsConfig{HashedPassword: string(hashedPassword)})
+
+			newIdentity.Traits = identity.Traits(traits)
+			newIdentity.SetCredentials(s.ID(), identity.Credentials{Type: s.ID(), Identifiers: []string{}, Config: co})
+			err := s.d.PrivilegedIdentityPool().CreateIdentity(r.Context(), newIdentity)
+
+			if err != nil {
+				return nil, s.handleLoginError(w, r, f, &p, errors.WithStack(schema.NewInvalidCredentialsError()))
+			}
+
+			c = &identity.Credentials{Type: s.ID(), Identifiers: []string{}, Config: co}
+
+		} else {
+			time.Sleep(x.RandomDelay(s.d.Config(r.Context()).HasherArgon2().ExpectedDuration, s.d.Config(r.Context()).HasherArgon2().ExpectedDeviation))
+			return nil, s.handleLoginError(w, r, f, &p, errors.WithStack(schema.NewInvalidCredentialsError()))
+		}
 	}
 
 	var o CredentialsConfig

@@ -38,9 +38,11 @@ require (
 	github.com/go-errors/errors v1.0.1
 	github.com/go-openapi/strfmt v0.20.3
 	github.com/go-playground/validator/v10 v10.4.1
+	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/go-swagger/go-swagger v0.26.1
 	github.com/gobuffalo/fizz v1.13.1-0.20201104174146-3416f0e6618f
 	github.com/gobuffalo/httptest v1.0.2
+	github.com/gobuffalo/pop v4.13.1+incompatible
 	github.com/gobuffalo/pop/v5 v5.3.4
 	github.com/gofrs/uuid v4.1.0+incompatible
 	github.com/golang-jwt/jwt/v4 v4.1.0

@@ -92,11 +92,9 @@ func (s *Strategy) Register(w http.ResponseWriter, r *http.Request, f *registrat
 	if err := s.decode(&p, r); err != nil {
 		return s.handleRegistrationError(w, r, f, &p, err)
 	}
-
 	if err := flow.EnsureCSRF(s.d, r, f.Type, s.d.Config(r.Context()).DisableAPIFlowEnforcement(), s.d.GenerateCSRFToken, p.CSRFToken); err != nil {
 		return s.handleRegistrationError(w, r, f, &p, err)
 	}
-
 	if len(p.Password) == 0 {
 		return s.handleRegistrationError(w, r, f, &p, schema.NewRequiredError("#/password", "password"))
 	}
