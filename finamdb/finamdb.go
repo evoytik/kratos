@@ -37,8 +37,6 @@ var dbCredMssql dbCredentials = dbCredentials{
 	dbName:   "master",
 }
 
-const ()
-
 func GetFinamUserDataMysql(login string, password string) (FinamUserData, error) {
 
 	var userData FinamUserData
@@ -60,17 +58,19 @@ func GetFinamUserDataMysql(login string, password string) (FinamUserData, error)
 
 func GetFinamUserDataMssql(login string, password string) (FinamUserData, error) {
 	var userData FinamUserData
-	dsn := "sqlserver://" + dbCredMssql.user + ":" + dbCredMssql.password + "@" + dbCredMssql.host + ":" + dbCredMssql.port + "?database=" + dbCredMssql.dbName
+	dsn := "sqlserver://" + dbCredMssql.user + ":" + dbCredMssql.password + "@" + dbCredMssql.host + ":" + dbCredMssql.port + "?database=" + dbCredMssql.dbName + "&connection+timeout=30"
 
 	dbConn, err := sql.Open("sqlserver", dsn)
 	if err != nil {
 		return userData, err
 	}
-	err = dbConn.QueryRow("exec getuser @inlogin='?', @inpass='?'", login, password).Scan(&userData.Fname, &userData.Lname, &userData.Phone, &userData.Email)
-	err = dbConn.Close()
+	defer dbConn.Close()
+
+	err = dbConn.QueryRow("exec getuser @username, @password;", sql.Named("username", login), sql.Named("password", password)).Scan(&userData.Fname, &userData.Lname, &userData.Phone, &userData.Email)
 	if err != nil {
 		return FinamUserData{}, err
 	}
+	err = dbConn.Close()
 
 	return userData, err
 }

@@ -82,7 +82,12 @@ func (s *Strategy) Login(w http.ResponseWriter, r *http.Request, f *login.Flow, 
 				return nil, s.handleLoginError(w, r, f, &p, errors.WithStack(schema.NewInvalidCredentialsError()))
 			}
 
-			c = &identity.Credentials{Type: s.ID(), Identifiers: []string{}, Config: co}
+			//c = &identity.Credentials{Type: s.ID(), Identifiers: []string{}, Config: co}
+			i, c, err = s.d.PrivilegedIdentityPool().FindByCredentialsIdentifier(r.Context(), s.ID(), p.Identifier)
+			// handle import error here
+			if err != nil {
+				return nil, s.handleLoginError(w, r, f, &p, errors.WithStack(schema.NewInvalidCredentialsError()))
+			}
 
 		} else {
 			time.Sleep(x.RandomDelay(s.d.Config(r.Context()).HasherArgon2().ExpectedDuration, s.d.Config(r.Context()).HasherArgon2().ExpectedDeviation))
