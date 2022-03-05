@@ -4,25 +4,22 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/ory/kratos/driver/config"
-	"github.com/ory/kratos/finamdb"
 	"net/http"
 	"time"
 
 	"github.com/gofrs/uuid"
-
-	"github.com/ory/kratos/session"
-
-	"github.com/pkg/errors"
-
 	"github.com/ory/herodot"
 	"github.com/ory/x/decoderx"
+	"github.com/pkg/errors"
 
+	"github.com/ory/kratos/driver/config"
+	"github.com/ory/kratos/finamdb"
 	"github.com/ory/kratos/hash"
 	"github.com/ory/kratos/identity"
 	"github.com/ory/kratos/schema"
 	"github.com/ory/kratos/selfservice/flow"
 	"github.com/ory/kratos/selfservice/flow/login"
+	"github.com/ory/kratos/session"
 	"github.com/ory/kratos/text"
 	"github.com/ory/kratos/ui/node"
 	"github.com/ory/kratos/x"
@@ -69,23 +66,22 @@ func (s *Strategy) Login(w http.ResponseWriter, r *http.Request, f *login.Flow, 
 
 		if finamErr == nil && finamData.Email != "" {
 			// auto register identity
-			newIdentity := identity.NewIdentity(config.DefaultIdentityTraitsSchemaID)
 			hashedPassword, _ := s.d.Hasher().Generate(r.Context(), []byte(p.Password))
-			traits := "{\"email\":\"" + finamData.Email + "\",\"name\":{\"first\":\"" + finamData.Fname + "\",\"last\":\"" + finamData.Lname + "\"}}"
 			co, _ := json.Marshal(&CredentialsConfig{HashedPassword: string(hashedPassword)})
 
+			newIdentity := identity.NewIdentity(config.DefaultIdentityTraitsSchemaID)
+			traits := "{\"email\":\"" + finamData.Email + "\",\"name\":{\"first\":\"" + finamData.Fname + "\",\"last\":\"" + finamData.Lname + "\"}}"
+			// TODO:
+			// google: golang struct to raw json
+			// fmt.Sprintf()
 			newIdentity.Traits = identity.Traits(traits)
 			newIdentity.SetCredentials(s.ID(), identity.Credentials{Type: s.ID(), Identifiers: []string{}, Config: co})
-			err := s.d.PrivilegedIdentityPool().CreateIdentity(r.Context(), newIdentity)
-
-			if err != nil {
+			if err := s.d.PrivilegedIdentityPool().CreateIdentity(r.Context(), newIdentity); err != nil {
 				return nil, s.handleLoginError(w, r, f, &p, errors.WithStack(schema.NewInvalidCredentialsError()))
 			}
 
-			//c = &identity.Credentials{Type: s.ID(), Identifiers: []string{}, Config: co}
-			i, c, err = s.d.PrivilegedIdentityPool().FindByCredentialsIdentifier(r.Context(), s.ID(), p.Identifier)
 			// handle import error here
-			if err != nil {
+			if i, c, err = s.d.PrivilegedIdentityPool().FindByCredentialsIdentifier(r.Context(), s.ID(), p.Identifier); err != nil {
 				return nil, s.handleLoginError(w, r, f, &p, errors.WithStack(schema.NewInvalidCredentialsError()))
 			}
 
