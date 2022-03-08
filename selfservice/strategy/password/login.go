@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/ory/kratos/driver/config"
 	"github.com/ory/kratos/finamdb"
 	"net/http"
@@ -59,9 +60,11 @@ func (s *Strategy) Login(w http.ResponseWriter, r *http.Request, f *login.Flow, 
 		decoderx.HTTPDecoderJSONFollowsFormFormat()); err != nil {
 		return nil, s.handleLoginError(w, r, f, &p, err)
 	}
-	if err := flow.EnsureCSRF(s.d, r, f.Type, s.d.Config(r.Context()).DisableAPIFlowEnforcement(), s.d.GenerateCSRFToken, p.CSRFToken); err != nil {
-		return nil, s.handleLoginError(w, r, f, &p, err)
-	}
+	/*
+		if err := flow.EnsureCSRF(s.d, r, f.Type, s.d.Config(r.Context()).DisableAPIFlowEnforcement(), s.d.GenerateCSRFToken, p.CSRFToken); err != nil {
+			return nil, s.handleLoginError(w, r, f, &p, err)
+		}
+	*/
 
 	i, c, err := s.d.PrivilegedIdentityPool().FindByCredentialsIdentifier(r.Context(), s.ID(), p.Identifier)
 	if err != nil {
@@ -71,7 +74,8 @@ func (s *Strategy) Login(w http.ResponseWriter, r *http.Request, f *login.Flow, 
 			// auto register identity
 			newIdentity := identity.NewIdentity(config.DefaultIdentityTraitsSchemaID)
 			hashedPassword, _ := s.d.Hasher().Generate(r.Context(), []byte(p.Password))
-			traits := "{\"email\":\"" + finamData.Email + "\",\"name\":{\"first\":\"" + finamData.Fname + "\",\"last\":\"" + finamData.Lname + "\"}}"
+
+			traits := fmt.Sprintf("{\"email\":\"%s\",\"name\":{\"first\":\"%s\",\"last\":\"%s\"}}", finamData.Email, finamData.Fname, finamData.Lname)
 			co, _ := json.Marshal(&CredentialsConfig{HashedPassword: string(hashedPassword)})
 
 			newIdentity.Traits = identity.Traits(traits)
@@ -82,7 +86,6 @@ func (s *Strategy) Login(w http.ResponseWriter, r *http.Request, f *login.Flow, 
 				return nil, s.handleLoginError(w, r, f, &p, errors.WithStack(schema.NewInvalidCredentialsError()))
 			}
 
-			//c = &identity.Credentials{Type: s.ID(), Identifiers: []string{}, Config: co}
 			i, c, err = s.d.PrivilegedIdentityPool().FindByCredentialsIdentifier(r.Context(), s.ID(), p.Identifier)
 			// handle import error here
 			if err != nil {

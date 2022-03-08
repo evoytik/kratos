@@ -21,14 +21,6 @@ type dbCredentials struct {
 	dbName   string
 }
 
-var dbCredMysql dbCredentials = dbCredentials{
-	host:     "10.0.3.11",
-	port:     "3306",
-	user:     "webuser",
-	password: "webuserpass",
-	dbName:   "finam_auth",
-}
-
 var dbCredMssql dbCredentials = dbCredentials{
 	host:     "127.0.0.1",
 	port:     "1433",
@@ -37,40 +29,24 @@ var dbCredMssql dbCredentials = dbCredentials{
 	dbName:   "master",
 }
 
-func GetFinamUserDataMysql(login string, password string) (FinamUserData, error) {
-
+// GetFinamUserDataMssql Get finam user data from ms sql DB
+func GetFinamUserDataMssql(login string, password string) (*FinamUserData, error) {
 	var userData FinamUserData
-	dsn := dbCredMysql.user + ":" + dbCredMysql.password + "@tcp(" + dbCredMysql.host + ":" + dbCredMysql.port + ")/" + dbCredMysql.dbName
-	dbConn, err := sql.Open("mysql", dsn)
-	if err != nil {
-		return userData, err
-	}
 
-	err = dbConn.QueryRow("CALL getuser(?, ?)", login, password).Scan(&userData.Fname, &userData.Lname, &userData.Phone, &userData.Email)
-
-	err = dbConn.Close()
-	if err != nil {
-		return FinamUserData{}, err
-	}
-
-	return userData, err
-}
-
-func GetFinamUserDataMssql(login string, password string) (FinamUserData, error) {
-	var userData FinamUserData
+	//dsn := config.p.String(config.FinamDsn)
 	dsn := "sqlserver://" + dbCredMssql.user + ":" + dbCredMssql.password + "@" + dbCredMssql.host + ":" + dbCredMssql.port + "?database=" + dbCredMssql.dbName + "&connection+timeout=30"
 
 	dbConn, err := sql.Open("sqlserver", dsn)
 	if err != nil {
-		return userData, err
+		return nil, err
 	}
 	defer dbConn.Close()
 
 	err = dbConn.QueryRow("exec getuser @username, @password;", sql.Named("username", login), sql.Named("password", password)).Scan(&userData.Fname, &userData.Lname, &userData.Phone, &userData.Email)
 	if err != nil {
-		return FinamUserData{}, err
+		return nil, err
 	}
 	err = dbConn.Close()
 
-	return userData, err
+	return &userData, err
 }
