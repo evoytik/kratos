@@ -36,6 +36,9 @@ type (
 	PrivilegedPool interface {
 		Pool
 
+		// FindByAnyCredentialsIdentifier returns an identity by querying for it's credential identifiers.
+		FindByAnyCredentialsIdentifier(ctx context.Context, match string) (*Identity, error)
+
 		// FindByCredentialsIdentifier returns an identity by querying for it's credential identifiers.
 		FindByCredentialsIdentifier(ctx context.Context, ct CredentialsType, match string) (*Identity, *Credentials, error)
 

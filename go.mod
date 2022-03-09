@@ -32,6 +32,7 @@ require (
 	github.com/cortesi/modd v0.0.0-20210323234521-b35eddab86cc
 	github.com/davecgh/go-spew v1.1.1
 	github.com/davidrjonas/semver-cli v0.0.0-20190116233701-ee19a9a0dda6
+	github.com/denisenkom/go-mssqldb v0.12.0
 	github.com/duo-labs/webauthn v0.0.0-20210727191636-9f1b88ef44cc
 	github.com/fatih/color v1.13.0
 	github.com/form3tech-oss/jwt-go v3.2.2+incompatible
@@ -39,6 +40,7 @@ require (
 	github.com/go-errors/errors v1.0.1
 	github.com/go-openapi/strfmt v0.20.3
 	github.com/go-playground/validator/v10 v10.4.1
+	github.com/go-sql-driver/mysql v1.6.0
 	github.com/go-swagger/go-swagger v0.26.1
 	github.com/gobuffalo/fizz v1.14.0
 	github.com/gobuffalo/httptest v1.0.2

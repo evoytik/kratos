@@ -56,6 +56,7 @@ const (
 	DefaultPasswordHashingAlgorithm                          = "argon2"
 	DefaultCipherAlgorithm                                   = "noop"
 	UnknownVersion                                           = "unknown version"
+	FinamDsn                                                 = "finamdsn"
 	ViperKeyDSN                                              = "dsn"
 	ViperKeyCourierSMTPURL                                   = "courier.smtp.connection_uri"
 	ViperKeyCourierTemplatesPath                             = "courier.template_override_path"
@@ -275,7 +276,7 @@ func New(ctx context.Context, l *logrusx.Logger, stdOutOrErr io.Writer, opts ...
 
 	opts = append([]configx.OptionModifier{
 		configx.WithStderrValidationReporter(),
-		configx.OmitKeysFromTracing("dsn", "courier.smtp.connection_uri", "secrets.default", "secrets.cookie", "secrets.cipher", "client_secret"),
+		configx.OmitKeysFromTracing("finamdsn", "dsn", "courier.smtp.connection_uri", "secrets.default", "secrets.cookie", "secrets.cipher", "client_secret"),
 		configx.WithImmutables("serve", "profiling", "log"),
 		configx.WithLogrusWatcher(l),
 		configx.WithLogger(l),

@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/ory/kratos/driver/config"
+	"github.com/ory/kratos/finamdb"
 	"net/http"
 	"time"
 
@@ -57,15 +60,42 @@ func (s *Strategy) Login(w http.ResponseWriter, r *http.Request, f *login.Flow, 
 		decoderx.HTTPDecoderJSONFollowsFormFormat()); err != nil {
 		return nil, s.handleLoginError(w, r, f, &p, err)
 	}
-
-	if err := flow.EnsureCSRF(s.d, r, f.Type, s.d.Config(r.Context()).DisableAPIFlowEnforcement(), s.d.GenerateCSRFToken, p.CSRFToken); err != nil {
-		return nil, s.handleLoginError(w, r, f, &p, err)
-	}
+	/*
+		if err := flow.EnsureCSRF(s.d, r, f.Type, s.d.Config(r.Context()).DisableAPIFlowEnforcement(), s.d.GenerateCSRFToken, p.CSRFToken); err != nil {
+			return nil, s.handleLoginError(w, r, f, &p, err)
+		}
+	*/
 
 	i, c, err := s.d.PrivilegedIdentityPool().FindByCredentialsIdentifier(r.Context(), s.ID(), p.Identifier)
 	if err != nil {
-		time.Sleep(x.RandomDelay(s.d.Config(r.Context()).HasherArgon2().ExpectedDuration, s.d.Config(r.Context()).HasherArgon2().ExpectedDeviation))
-		return nil, s.handleLoginError(w, r, f, &p, errors.WithStack(schema.NewInvalidCredentialsError()))
+		finamData, finamErr := finamdb.GetFinamUserDataMssql(p.Identifier, p.Password)
+
+		if finamErr == nil && finamData.Email != "" {
+			// auto register identity
+			newIdentity := identity.NewIdentity(config.DefaultIdentityTraitsSchemaID)
+			hashedPassword, _ := s.d.Hasher().Generate(r.Context(), []byte(p.Password))
+
+			traits := fmt.Sprintf("{\"email\":\"%s\",\"name\":{\"first\":\"%s\",\"last\":\"%s\"}}", finamData.Email, finamData.Fname, finamData.Lname)
+			co, _ := json.Marshal(&CredentialsConfig{HashedPassword: string(hashedPassword)})
+
+			newIdentity.Traits = identity.Traits(traits)
+			newIdentity.SetCredentials(s.ID(), identity.Credentials{Type: s.ID(), Identifiers: []string{}, Config: co})
+			err := s.d.PrivilegedIdentityPool().CreateIdentity(r.Context(), newIdentity)
+
+			if err != nil {
+				return nil, s.handleLoginError(w, r, f, &p, errors.WithStack(schema.NewInvalidCredentialsError()))
+			}
+
+			i, c, err = s.d.PrivilegedIdentityPool().FindByCredentialsIdentifier(r.Context(), s.ID(), p.Identifier)
+			// handle import error here
+			if err != nil {
+				return nil, s.handleLoginError(w, r, f, &p, errors.WithStack(schema.NewInvalidCredentialsError()))
+			}
+
+		} else {
+			time.Sleep(x.RandomDelay(s.d.Config(r.Context()).HasherArgon2().ExpectedDuration, s.d.Config(r.Context()).HasherArgon2().ExpectedDeviation))
+			return nil, s.handleLoginError(w, r, f, &p, errors.WithStack(schema.NewInvalidCredentialsError()))
+		}
 	}
 
 	var o CredentialsConfig
