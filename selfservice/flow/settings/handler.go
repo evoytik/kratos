@@ -84,7 +84,7 @@ func (h *Handler) RegisterPublicRoutes(public *x.RouterPublic) {
 
 	public.GET(RouteInitBrowserFlow, h.d.SessionHandler().IsAuthenticated(h.initBrowserFlow, func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		if x.IsJSONRequest(r) {
-			h.d.Writer().WriteError(w, r, errors.WithStack(herodot.ErrForbidden.WithReason("Please include a valid session cookie or session token when calling this endpoint.")))
+			h.d.Writer().WriteError(w, r, session.NewErrNoActiveSessionFound())
 		} else {
 			http.Redirect(w, r, h.d.Config(r.Context()).SelfServiceFlowLoginUI().String(), http.StatusFound)
 		}
@@ -375,12 +375,12 @@ func (h *Handler) fetchFlow(w http.ResponseWriter, r *http.Request) error {
 		if pr.Type == flow.TypeBrowser {
 			h.d.Writer().WriteError(w, r, errors.WithStack(x.ErrGone.
 				WithReason("The settings flow has expired. Redirect the user to the settings flow init endpoint to initialize a new settings flow.").
-				WithDetail("redirect_to", urlx.AppendPaths(h.d.Config(r.Context()).SelfPublicURL(r), RouteInitBrowserFlow).String())))
+				WithDetail("redirect_to", urlx.AppendPaths(h.d.Config(r.Context()).SelfPublicURL(), RouteInitBrowserFlow).String())))
 			return nil
 		}
 		h.d.Writer().WriteError(w, r, errors.WithStack(x.ErrGone.
 			WithReason("The settings flow has expired. Call the settings flow init API endpoint to initialize a new settings flow.").
-			WithDetail("api", urlx.AppendPaths(h.d.Config(r.Context()).SelfPublicURL(r), RouteInitAPIFlow).String())))
+			WithDetail("api", urlx.AppendPaths(h.d.Config(r.Context()).SelfPublicURL(), RouteInitAPIFlow).String())))
 		return nil
 	}
 

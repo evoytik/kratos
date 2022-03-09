@@ -108,7 +108,7 @@ func (h *Handler) NewLoginFlow(w http.ResponseWriter, r *http.Request, ft flow.T
 
 	// We assume an error means the user has no session
 	sess, err := h.d.SessionManager().FetchFromRequest(r.Context(), r)
-	if errors.Is(err, session.ErrNoActiveSessionFound) {
+	if e := new(session.ErrNoActiveSessionFound); errors.As(err, &e) {
 		// No session exists yet
 
 		// We can not request an AAL > 1 because we must first verify the first factor.
@@ -326,7 +326,7 @@ func (h *Handler) initBrowserFlow(w http.ResponseWriter, r *http.Request, ps htt
 	a, err := h.NewLoginFlow(w, r, flow.TypeBrowser)
 	if errors.Is(err, ErrAlreadyLoggedIn) {
 		returnTo, redirErr := x.SecureRedirectTo(r, h.d.Config(r.Context()).SelfServiceBrowserDefaultReturnTo(),
-			x.SecureRedirectAllowSelfServiceURLs(h.d.Config(r.Context()).SelfPublicURL(r)),
+			x.SecureRedirectAllowSelfServiceURLs(h.d.Config(r.Context()).SelfPublicURL()),
 			x.SecureRedirectAllowURLs(h.d.Config(r.Context()).SelfServiceBrowserWhitelistedReturnToDomains()),
 		)
 		if redirErr != nil {
@@ -424,12 +424,12 @@ func (h *Handler) fetchFlow(w http.ResponseWriter, r *http.Request, _ httprouter
 		if ar.Type == flow.TypeBrowser {
 			h.d.Writer().WriteError(w, r, errors.WithStack(x.ErrGone.WithID(text.ErrIDSelfServiceFlowExpired).
 				WithReason("The login flow has expired. Redirect the user to the login flow init endpoint to initialize a new login flow.").
-				WithDetail("redirect_to", urlx.AppendPaths(h.d.Config(r.Context()).SelfPublicURL(r), RouteInitBrowserFlow).String())))
+				WithDetail("redirect_to", urlx.AppendPaths(h.d.Config(r.Context()).SelfPublicURL(), RouteInitBrowserFlow).String())))
 			return
 		}
 		h.d.Writer().WriteError(w, r, errors.WithStack(x.ErrGone.WithID(text.ErrIDSelfServiceFlowExpired).
 			WithReason("The login flow has expired. Call the login flow init API endpoint to initialize a new login flow.").
-			WithDetail("api", urlx.AppendPaths(h.d.Config(r.Context()).SelfPublicURL(r), RouteInitAPIFlow).String())))
+			WithDetail("api", urlx.AppendPaths(h.d.Config(r.Context()).SelfPublicURL(), RouteInitAPIFlow).String())))
 		return
 	}
 
@@ -550,7 +550,7 @@ func (h *Handler) submitFlow(w http.ResponseWriter, r *http.Request, _ httproute
 
 		http.Redirect(w, r, h.d.Config(r.Context()).SelfServiceBrowserDefaultReturnTo().String(), http.StatusSeeOther)
 		return
-	} else if errors.Is(err, session.ErrNoActiveSessionFound) {
+	} else if e := new(session.ErrNoActiveSessionFound); errors.As(err, &e) {
 		// Only failure scenario here is if we try to upgrade the session to a higher AAL without actually
 		// having a session.
 		if f.RequestedAAL > identity.AuthenticatorAssuranceLevel1 {

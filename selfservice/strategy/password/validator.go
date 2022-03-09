@@ -3,11 +3,6 @@ package password
 import (
 	"bufio"
 	"context"
-	"time"
-
-	"github.com/hashicorp/go-retryablehttp"
-
-	"github.com/ory/kratos/driver/config"
 
 	/* #nosec G505 sha1 is used for k-anonymity */
 	"crypto/sha1"
@@ -16,15 +11,17 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/arbovm/levenshtein"
-
-	"github.com/ory/x/httpx"
-
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/pkg/errors"
 
 	"github.com/ory/herodot"
+	"github.com/ory/x/httpx"
 	"github.com/ory/x/stringsx"
+
+	"github.com/ory/kratos/driver/config"
 )
 
 // Validator implements a validation strategy for passwords. One example is that the password
@@ -145,18 +142,20 @@ func (s *DefaultPasswordValidator) fetch(hpw []byte, apiDNSName string) error {
 }
 
 func (s *DefaultPasswordValidator) Validate(ctx context.Context, identifier, password string) error {
-	if len(password) < 6 {
-		return errors.Errorf("password length must be at least 6 characters but only got %d", len(password))
-	}
-
-	compIdentifier, compPassword := strings.ToLower(identifier), strings.ToLower(password)
-	dist := levenshtein.Distance(compIdentifier, compPassword)
-	lcs := float32(lcsLength(compIdentifier, compPassword)) / float32(len(compPassword))
-	if dist < s.minIdentifierPasswordDist || lcs > s.maxIdentifierPasswordSubstrThreshold {
-		return errors.Errorf("the password is too similar to the user identifier")
-	}
-
 	passwordPolicyConfig := s.reg.Config(ctx).PasswordPolicyConfig()
+
+	if len(password) < int(passwordPolicyConfig.MinPasswordLength) {
+		return errors.Errorf("password length must be at least %d characters but only got %d", passwordPolicyConfig.MinPasswordLength, len(password))
+	}
+
+	if passwordPolicyConfig.IdentifierSimilarityCheckEnabled {
+		compIdentifier, compPassword := strings.ToLower(identifier), strings.ToLower(password)
+		dist := levenshtein.Distance(compIdentifier, compPassword)
+		lcs := float32(lcsLength(compIdentifier, compPassword)) / float32(len(compPassword))
+		if dist < s.minIdentifierPasswordDist || lcs > s.maxIdentifierPasswordSubstrThreshold {
+			return errors.Errorf("the password is too similar to the user identifier")
+		}
+	}
 
 	if !passwordPolicyConfig.HaveIBeenPwnedEnabled {
 		return nil

@@ -2,12 +2,11 @@ package template
 
 import (
 	"encoding/json"
-
-	"github.com/ory/kratos/driver/config"
+	"os"
 )
 
 type TestStub struct {
-	c *config.Config
+	c TemplateConfig
 	m *TestStubModel
 }
 
@@ -17,7 +16,7 @@ type TestStubModel struct {
 	Body    string
 }
 
-func NewTestStub(c *config.Config, m *TestStubModel) *TestStub {
+func NewTestStub(c TemplateConfig, m *TestStubModel) *TestStub {
 	return &TestStub{c: c, m: m}
 }
 
@@ -26,15 +25,15 @@ func (t *TestStub) EmailRecipient() (string, error) {
 }
 
 func (t *TestStub) EmailSubject() (string, error) {
-	return loadTextTemplate(t.c.CourierTemplatesRoot(), "test_stub/email.subject.gotmpl", t.m)
+	return LoadTextTemplate(os.DirFS(t.c.CourierTemplatesRoot()), "test_stub/email.subject.gotmpl", "test_stub/email.subject*", t.m)
 }
 
 func (t *TestStub) EmailBody() (string, error) {
-	return loadTextTemplate(t.c.CourierTemplatesRoot(), "test_stub/email.body.gotmpl", t.m)
+	return LoadHTMLTemplate(os.DirFS(t.c.CourierTemplatesRoot()), "test_stub/email.body.gotmpl", "test_stub/email.body*", t.m)
 }
 
 func (t *TestStub) EmailBodyPlaintext() (string, error) {
-	return loadTextTemplate(t.c.CourierTemplatesRoot(), "test_stub/email.body.plaintext.gotmpl", t.m)
+	return LoadTextTemplate(os.DirFS(t.c.CourierTemplatesRoot()), "test_stub/email.body.plaintext.gotmpl", "test_stub/email.body.plaintext*", t.m)
 }
 
 func (t *TestStub) MarshalJSON() ([]byte, error) {

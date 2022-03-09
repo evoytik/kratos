@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ory/nosurf"
+
 	"github.com/ory/kratos/driver"
 
 	"github.com/ory/x/urlx"
@@ -24,10 +26,19 @@ import (
 	"github.com/ory/kratos/x"
 )
 
-var _ x.CSRFHandler = new(mockCSRFHandler)
+var _ nosurf.Handler = new(mockCSRFHandler)
 
 type mockCSRFHandler struct {
 	c int
+}
+
+func (f *mockCSRFHandler) DisablePath(s string) {
+}
+
+func (f *mockCSRFHandler) DisableGlob(s string) {
+}
+
+func (f *mockCSRFHandler) DisableGlobs(s ...string) {
 }
 
 func (f *mockCSRFHandler) IgnoreGlob(s string) {
@@ -82,7 +93,6 @@ func TestManagerHTTP(t *testing.T) {
 		s := &session.Session{Identity: new(identity.Identity)}
 
 		require.NoError(t, conf.Source().Set(config.ViperKeyPublicBaseURL, "https://baseurl.com/base_url"))
-		require.NoError(t, conf.Source().Set(config.ViperKeyPublicDomainAliases, [...]config.DomainAlias{{MatchDomain: "alias.com", BasePath: "/bar", Scheme: "http"}}))
 
 		var getCookie = func(t *testing.T, req *http.Request) *http.Cookie {
 			rec := httptest.NewRecorder()
@@ -121,15 +131,6 @@ func TestManagerHTTP(t *testing.T) {
 			actual := getCookie(t, httptest.NewRequest("GET", "https://baseurl.com/bar", nil))
 			assert.EqualValues(t, "session.com", actual.Domain, "Domain is empty because unset as a config option")
 			assert.EqualValues(t, "/session", actual.Path, "Path is the default /")
-			assert.EqualValues(t, http.SameSiteNoneMode, actual.SameSite)
-			assert.EqualValues(t, true, actual.HttpOnly)
-			assert.EqualValues(t, true, actual.Secure)
-		})
-
-		t.Run("case=request from alias domain", func(t *testing.T) {
-			actual := getCookie(t, httptest.NewRequest("GET", "https://alias.com/bar", nil))
-			assert.EqualValues(t, "alias.com", actual.Domain, "Domain is alias.com")
-			assert.EqualValues(t, "/bar", actual.Path, "Path is the from alias")
 			assert.EqualValues(t, http.SameSiteNoneMode, actual.SameSite)
 			assert.EqualValues(t, true, actual.HttpOnly)
 			assert.EqualValues(t, true, actual.Secure)
