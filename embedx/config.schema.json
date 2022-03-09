@@ -310,7 +310,7 @@
         },
         "provider": {
           "title": "Provider",
-          "description": "Can be one of github, github-app, gitlab, generic, google, microsoft, discord, slack, facebook, auth0, vk, yandex.",
+          "description": "Can be one of github, github-app, gitlab, generic, google, microsoft, discord, slack, facebook, auth0, vk, yandex, spotify.",
           "type": "string",
           "enum": [
             "github",
@@ -325,7 +325,8 @@
             "auth0",
             "vk",
             "yandex",
-            "apple"
+            "apple",
+            "spotify"
           ],
           "examples": [
             "google"
@@ -832,7 +833,7 @@
                 },
                 "lifespan": {
                   "type": "string",
-                  "pattern": "^[0-9]+(ns|us|ms|s|m|h)$",
+                  "pattern": "^([0-9]+(ns|us|ms|s|m|h))+$",
                   "default": "1h",
                   "examples": [
                     "1h",
@@ -842,7 +843,7 @@
                 },
                 "privileged_session_max_age": {
                   "type": "string",
-                  "pattern": "^[0-9]+(ns|us|ms|s|m|h)$",
+                  "pattern": "^([0-9]+(ns|us|ms|s|m|h))+$",
                   "default": "1h",
                   "examples": [
                     "1h",
@@ -877,6 +878,12 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "title": "Enable User Registration",
+                  "description": "If set to true will enable [User Registration](https://www.ory.sh/kratos/docs/self-service/flows/user-registration/).",
+                  "default": true
+                },
                 "ui_url": {
                   "title": "Registration UI URL",
                   "description": "URL where the Registration UI is hosted. Check the [reference implementation](https://github.com/ory/kratos-selfservice-ui-node).",
@@ -889,7 +896,7 @@
                 },
                 "lifespan": {
                   "type": "string",
-                  "pattern": "^[0-9]+(ns|us|ms|s|m|h)$",
+                  "pattern": "^([0-9]+(ns|us|ms|s|m|h))+$",
                   "default": "1h",
                   "examples": [
                     "1h",
@@ -921,7 +928,7 @@
                 },
                 "lifespan": {
                   "type": "string",
-                  "pattern": "^[0-9]+(ns|us|ms|s|m|h)$",
+                  "pattern": "^([0-9]+(ns|us|ms|s|m|h))+$",
                   "default": "1h",
                   "examples": [
                     "1h",
@@ -965,7 +972,7 @@
                   "title": "Self-Service Verification Request Lifespan",
                   "description": "Sets how long the verification request (for the UI interaction) is valid.",
                   "type": "string",
-                  "pattern": "^[0-9]+(ns|us|ms|s|m|h)$",
+                  "pattern": "^([0-9]+(ns|us|ms|s|m|h))+$",
                   "default": "1h",
                   "examples": [
                     "1h",
@@ -1003,7 +1010,7 @@
                   "title": "Self-Service Recovery Request Lifespan",
                   "description": "Sets how long the recovery request is valid. If expired, the user has to redo the flow.",
                   "type": "string",
-                  "pattern": "^[0-9]+(ns|us|ms|s|m|h)$",
+                  "pattern": "^([0-9]+(ns|us|ms|s|m|h))+$",
                   "default": "1h",
                   "examples": [
                     "1h",
@@ -1060,10 +1067,17 @@
                   "title": "Link Configuration",
                   "description": "Additional configuration for the link strategy.",
                   "properties": {
+                    "base_url": {
+                      "title": "Override the base URL which should be used as the base for recovery and verification links.",
+                      "type": "string",
+                      "examples": [
+                        "https://my-app.com"
+                      ]
+                    },
                     "lifespan": {
                       "title": "How long a link is valid for",
                       "type": "string",
-                      "pattern": "^[0-9]+(ns|us|ms|s|m|h)$",
+                      "pattern": "^([0-9]+(ns|us|ms|s|m|h))+$",
                       "default": "1h",
                       "examples": [
                         "1h",
@@ -1112,6 +1126,19 @@
                     "ignore_network_errors": {
                       "title": "Ignore Lookup Network Errors",
                       "description": "If set to false the password validation fails when the network or the Have I Been Pwnd API is down.",
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "min_password_length": {
+                      "title": "Minimum Password Length",
+                      "description": "Defines the minimum length of the password.",
+                      "type": "integer",
+                      "default": 8,
+                      "minimum": 6
+                    },
+                    "identifier_similarity_check_enabled": {
+                      "title": "Enable password-identifier similarity check",
+                      "description": "If set to false the password validation does not check for similarity between the password and the user identifier.",
                       "type": "boolean",
                       "default": true
                     }
@@ -1361,6 +1388,18 @@
         "admin": {
           "type": "object",
           "properties": {
+            "request_log": {
+              "type": "object",
+              "properties": {
+                "disable_for_health": {
+                  "title": "Disable health endpoints request logging",
+                  "description": "Disable request logging for /health/alive and /health/ready endpoints",
+                  "type": "boolean",
+                  "default": false
+                }
+              },
+              "additionalProperties": false
+            },
             "base_url": {
               "title": "Admin Base URL",
               "description": "The URL where the admin endpoint is exposed at.",
@@ -1399,6 +1438,18 @@
         "public": {
           "type": "object",
           "properties": {
+            "request_log": {
+              "type": "object",
+              "properties": {
+                "disable_for_health": {
+                  "title": "Disable health endpoints request logging",
+                  "description": "Disable request logging for /health/alive and /health/ready endpoints",
+                  "type": "boolean",
+                  "default": false
+                }
+              },
+              "additionalProperties": false
+            },
             "cors": {
               "type": "object",
               "additionalProperties": false,
@@ -1422,6 +1473,7 @@
                     },
                     "anyOf": [
                       {
+                        "type": "string",
                         "format": "uri"
                       },
                       {
@@ -1513,55 +1565,6 @@
             },
             "base_url": {
               "$ref": "#/definitions/baseUrl"
-            },
-            "domain_aliases": {
-              "title": "Domain Aliases",
-              "description": "Adds an alias domain. If a request with the hostname (FQDN) matching the hostname in the alias is found, that URL is used as the base URL.",
-              "type": "array",
-              "items": [
-                {
-                  "additionalProperties": false,
-                  "type": "object",
-                  "required": [
-                    "match_domain",
-                    "base_path",
-                    "scheme"
-                  ],
-                  "properties": {
-                    "match_domain": {
-                      "minLength": 1,
-                      "title": "Matching Domain",
-                      "description": "Sets the matching domain. If the domain matches with this entry, the accompanying base_url will be used.",
-                      "type": "string",
-                      "examples": [
-                        "localhost",
-                        "my-domain.com"
-                      ]
-                    },
-                    "scheme": {
-                      "title": "Scheme",
-                      "description": "Sets the scheme, for example https or http.",
-                      "type": "string",
-                      "enum": [
-                        "http",
-                        "https"
-                      ]
-                    },
-                    "base_path": {
-                      "minLength": 1,
-                      "title": "Base Path",
-                      "description": "Sets the base path for the matched domain.",
-                      "type": "string",
-                      "default": "/",
-                      "pattern": "^/.*$",
-                      "examples": [
-                        "/",
-                        "/.ory/kratos"
-                      ]
-                    }
-                  }
-                }
-              ]
             },
             "host": {
               "title": "Public Host",
@@ -1942,13 +1945,13 @@
             "expected_duration": {
               "description": "The time a hashing operation (~login latency) should take.",
               "type": "string",
-              "pattern": "^[0-9]+(ns|us|ms|s|m|h)$",
+              "pattern": "^([0-9]+(ns|us|ms|s|m|h))+$",
               "default": "500ms"
             },
             "expected_deviation": {
               "description": "The standard deviation expected for hashing operations. If this value is exceeded you will be warned in the logs to adjust the parameters.",
               "type": "string",
-              "pattern": "^[0-9]+(ns|us|ms|s|m|h)$",
+              "pattern": "^([0-9]+(ns|us|ms|s|m|h))+$",
               "default": "500ms"
             },
             "dedicated_memory": {
@@ -1979,7 +1982,7 @@
       },
       "additionalProperties": false
     },
-    "ciphers" : {
+    "ciphers": {
       "title": "Cipher Algorithm Configuration",
       "type": "object",
       "properties": {
@@ -2045,7 +2048,7 @@
           "title": "Session Lifespan",
           "description": "Defines how long a session is active. Once that lifespan has been reached, the user needs to sign in again.",
           "type": "string",
-          "pattern": "^[0-9]+(ns|us|ms|s|m|h)$",
+          "pattern": "^([0-9]+(ns|us|ms|s|m|h))+$",
           "default": "24h",
           "examples": [
             "1h",
@@ -2135,6 +2138,26 @@
         "type": "string"
       },
       "description": "This is a CLI flag and environment variable and can not be set using the config file."
+    },
+    "clients": {
+      "title": "Global outgoing network settings",
+      "description": "Configure how outgoing network calls behave.",
+      "type": "object",
+      "properties": {
+        "http": {
+          "title": "Global HTTP client configuration",
+          "description": "Configure how outgoing HTTP calls behave.",
+          "type": "object",
+          "properties": {
+            "disallow_private_ip_ranges": {
+              "title": "Disallow private IP ranges",
+              "description": "Disallow all outgoing HTTP calls to private IP ranges. This feature can help protect against SSRF attacks.",
+              "type": "boolean",
+              "default": false
+            }
+          }
+        }
+      }
     }
   },
   "allOf": [
@@ -2200,7 +2223,7 @@
     {
       "if": {
         "properties": {
-          "ciphers" : {
+          "ciphers": {
             "properties": {
               "algorithm": {
                 "oneOf": [
@@ -2213,16 +2236,24 @@
                 ]
               }
             },
-            "required": ["algorithm"]
+            "required": [
+              "algorithm"
+            ]
           }
         },
-        "required": ["ciphers"]
+        "required": [
+          "ciphers"
+        ]
       },
       "then": {
-        "required": ["secrets"],
+        "required": [
+          "secrets"
+        ],
         "properties": {
           "secrets": {
-            "required": ["cipher"]
+            "required": [
+              "cipher"
+            ]
           }
         }
       }

@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ory/kratos/x"
+
 	"github.com/ory/kratos/cipher"
 
 	"github.com/ory/herodot"
@@ -19,7 +21,6 @@ import (
 	"github.com/ory/x/urlx"
 
 	"github.com/ory/kratos/driver/config"
-	"github.com/ory/kratos/x"
 )
 
 const RouteCollection = "/identities"
@@ -80,24 +81,7 @@ type identityList []Identity
 // swagger:parameters adminListIdentities
 // nolint:deadcode,unused
 type adminListIdentities struct {
-	// Items per Page
-	//
-	// This is the number of items per page.
-	//
-	// required: false
-	// in: query
-	// default: 100
-	// min: 1
-	// max: 500
-	PerPage int `json:"per_page"`
-
-	// Pagination Page
-	//
-	// required: false
-	// in: query
-	// default: 0
-	// min: 0
-	Page int `json:"page"`
+	x.PaginationParams
 }
 
 // swagger:route GET /identities v0alpha2 adminListIdentities

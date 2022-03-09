@@ -158,6 +158,15 @@ func TestInitFlow(t *testing.T) {
 			res, _ := initAuthenticatedFlow(t, false, false)
 			assert.Contains(t, res.Request.URL.String(), "https://www.ory.sh")
 		})
+		t.Run("case=relative redirect when self-service recovery ui is a relative URL", func(t *testing.T) {
+			reg.Config(context.Background()).MustSet(config.ViperKeySelfServiceRecoveryUI, "/recovery-ts")
+			assert.Regexp(
+				t,
+				"^/recovery-ts.*$",
+				testhelpers.GetSelfServiceRedirectLocation(t, publicTS.URL+recovery.RouteInitBrowserFlow),
+			)
+		})
+
 	})
 }
 
@@ -239,5 +248,13 @@ func TestGetFlow(t *testing.T) {
 		f, err = reg.RecoveryFlowPersister().GetRecoveryFlow(context.Background(), uuid.FromStringOrNil(gjson.GetBytes(resBody, "id").String()))
 		require.NoError(t, err)
 		assert.Equal(t, public.URL+recovery.RouteInitBrowserFlow+"?return_to=https://www.ory.sh", f.RequestURL)
+	})
+
+	t.Run("case=not found", func(t *testing.T) {
+		client := testhelpers.NewClientWithCookies(t)
+		setupRecoveryTS(t, client)
+
+		res, _ := x.EasyGet(t, client, public.URL+recovery.RouteGetFlow+"?id="+x.NewUUID().String())
+		assert.EqualValues(t, http.StatusNotFound, res.StatusCode)
 	})
 }
