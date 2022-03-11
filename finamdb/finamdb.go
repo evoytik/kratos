@@ -13,30 +13,12 @@ type FinamUserData struct {
 	Phone string
 }
 
-type dbCredentials struct {
-	host     string
-	port     string
-	user     string
-	password string
-	dbName   string
-}
-
-var dbCredMssql dbCredentials = dbCredentials{
-	host:     "127.0.0.1",
-	port:     "1433",
-	user:     "sa",
-	password: "Juurfj48TGu",
-	dbName:   "master",
-}
-
 // GetFinamUserDataMssql Get finam user data from ms sql DB
-func GetFinamUserDataMssql(login string, password string) (*FinamUserData, error) {
+// add to the yaml config file something like:  finamdsn: "sqlserver://sa:password@127.0.0.1:1433?database=master&connection+timeout=30"
+func GetFinamUserDataMssql(finamDsn string, login string, password string) (*FinamUserData, error) {
 	var userData FinamUserData
 
-	//dsn := config.p.String(config.FinamDsn)
-	dsn := "sqlserver://" + dbCredMssql.user + ":" + dbCredMssql.password + "@" + dbCredMssql.host + ":" + dbCredMssql.port + "?database=" + dbCredMssql.dbName + "&connection+timeout=30"
-
-	dbConn, err := sql.Open("sqlserver", dsn)
+	dbConn, err := sql.Open("sqlserver", finamDsn)
 	if err != nil {
 		return nil, err
 	}

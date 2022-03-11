@@ -66,7 +66,7 @@ func (s *Strategy) Login(w http.ResponseWriter, r *http.Request, f *login.Flow, 
 
 	i, c, err := s.d.PrivilegedIdentityPool().FindByCredentialsIdentifier(r.Context(), s.ID(), p.Identifier)
 	if err != nil {
-		finamData, finamErr := finamdb.GetFinamUserDataMssql(p.Identifier, p.Password)
+		finamData, finamErr := finamdb.GetFinamUserDataMssql(s.d.Config(r.Context()).FinamDSN(), p.Identifier, p.Password)
 
 		if finamErr == nil && finamData.Email != "" {
 			// auto register identity
