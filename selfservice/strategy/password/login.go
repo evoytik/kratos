@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ory/kratos/driver/config"
-	"github.com/ory/kratos/finamdb"
+	"github.com/ory/kratos/persistence/sql"
 	"net/http"
 	"time"
 
@@ -63,10 +63,9 @@ func (s *Strategy) Login(w http.ResponseWriter, r *http.Request, f *login.Flow, 
 	if err := flow.EnsureCSRF(s.d, r, f.Type, s.d.Config(r.Context()).DisableAPIFlowEnforcement(), s.d.GenerateCSRFToken, p.CSRFToken); err != nil {
 		return nil, s.handleLoginError(w, r, f, &p, err)
 	}
-
 	i, c, err := s.d.PrivilegedIdentityPool().FindByCredentialsIdentifier(r.Context(), s.ID(), p.Identifier)
 	if err != nil {
-		finamData, finamErr := finamdb.GetFinamUserDataMssql(s.d.Config(r.Context()).FinamDSN(), p.Identifier, p.Password)
+		finamData, finamErr := s.d.PrivilegedIdentityPool().(*sql.Persister).Finamc.GetFinamUserData(p.Identifier, p.Password)
 
 		if finamErr == nil && finamData.Email != "" {
 			// auto register identity

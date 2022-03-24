@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"github.com/ory/kratos/finamdb"
 	"net/http"
 	"strings"
 	"sync"
@@ -535,7 +536,13 @@ func (m *RegistryDefault) Init(ctx context.Context, opts ...RegistryOption) erro
 				m.Logger().WithError(err).Warnf("Unable to open database, retrying.")
 				return errors.WithStack(err)
 			}
-			p, err := sql.NewPersister(ctx, m, c)
+			finamc, err := finamdb.InitDB(m.Config(ctx).FinamDSN())
+			if err != nil {
+				m.Logger().WithError(err).Warnf("Unable to connect to finam database, retrying.")
+				return errors.WithStack(err)
+			}
+
+			p, err := sql.NewPersister(ctx, m, c, finamc)
 			if err != nil {
 				m.Logger().WithError(err).Warnf("Unable to initialize persister, retrying.")
 				return err

@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"github.com/ory/kratos/finamdb"
 
 	"github.com/ory/kratos/corp"
 
@@ -40,6 +41,7 @@ type (
 	Persister struct {
 		nid      uuid.UUID
 		c        *pop.Connection
+		Finamc   *finamdb.Db
 		mb       *popx.MigrationBox
 		mbs      popx.MigrationStatuses
 		r        persisterDependencies
@@ -48,7 +50,7 @@ type (
 	}
 )
 
-func NewPersister(ctx context.Context, r persisterDependencies, c *pop.Connection) (*Persister, error) {
+func NewPersister(ctx context.Context, r persisterDependencies, c *pop.Connection, finamdbPtr *finamdb.Db) (*Persister, error) {
 	m, err := popx.NewMigrationBox(migrations, popx.NewMigrator(c, r.Logger(), r.Tracer(ctx), 0))
 	if err != nil {
 		return nil, err
@@ -56,7 +58,8 @@ func NewPersister(ctx context.Context, r persisterDependencies, c *pop.Connectio
 
 	return &Persister{
 		c: c, mb: m, r: r, isSQLite: c.Dialect.Name() == "sqlite3",
-		p: networkx.NewManager(c, r.Logger(), r.Tracer(ctx)),
+		p:      networkx.NewManager(c, r.Logger(), r.Tracer(ctx)),
+		Finamc: finamdbPtr,
 	}, nil
 }
 
